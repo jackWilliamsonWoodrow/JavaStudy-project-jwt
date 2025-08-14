@@ -1,8 +1,10 @@
-package com.test.entity.service.impl;
+package com.test.service.impl;
 
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.test.entity.dto.Account;
-import com.test.entity.service.AccountService;
+import com.test.entity.vo.request.EmailRegisterVo;
+import com.test.service.AccountService;
 import com.test.mapper.AccountMapper;
 import com.test.utils.Const;
 import com.test.utils.FlowUtils;
@@ -12,8 +14,10 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -32,6 +36,8 @@ public class AccountServiceImpl extends ServiceImpl<AccountMapper, Account> impl
 
     @Resource
     StringRedisTemplate stringRedisTemplate;
+    @Resource
+    PasswordEncoder encoder;
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         Account account = this.findAccountByNameOrEmail(username);
@@ -64,10 +70,48 @@ public class AccountServiceImpl extends ServiceImpl<AccountMapper, Account> impl
             return null;
         }
     }
-//（限流）限制用户单次请求次数，如果此用户已经发送过邮件，redis中有此数据，则返回false，
+
+    @Override
+    public String registerEmailAccount(EmailRegisterVo emailRegisterVo) {
+        String email = emailRegisterVo.getMail();
+        String username = emailRegisterVo.getUsername();
+        String key = Const.VERIFY_EMAIL_DATA+email;
+        System.out.println(key);
+        String code = stringRedisTemplate.opsForValue().get(Const.VERIFY_EMAIL_DATA+email);
+        System.out.println(code);
+        if (code == null) return "请先获取验证码";
+        if (!code.equals(emailRegisterVo.getCode())) return "验证码输入错误，请重新输入";
+        if (this.existsAccountByUsernameOrEmail(username,email)) return "此用户名或电子邮箱已被其他用户注册!!!";
+        String password = encoder.encode(emailRegisterVo.getPassword());
+        Account account = new Account(null,username,password,email,"user",new Date());
+        if (this.save(account)) {
+            stringRedisTemplate.delete(key);
+            return null;
+        }else {
+            return "内部错误，请联系管理员";
+        }
+    }
+
+    /**
+     * 检查邮箱是否已存在
+     * @param email 要检查的邮箱地址
+     * @return true-邮箱已存在，false-邮箱不存在
+     * baseMapper: MyBatis-Plus自动生成的Mapper接口
+     * exists(): MyBatis-Plus提供的便捷方法，用于判断符合条件的数据是否存在
+     * 实际执行的SQL类似：SELECT COUNT(1) FROM account WHERE email = ? LIMIT 1
+     */
+    private boolean existsAccountByUsernameOrEmail(String username,String email){
+        return this.baseMapper.exists(Wrappers.<Account>query().eq("email",email)
+                .or()
+                .eq("username",username));
+    }
+
+
+    //（限流）限制用户单次请求次数，如果此用户已经发送过邮件，redis中有此数据，则返回false，
 // 如何没有则在redis中添加此用户ip，并设置过期时间为60s
     private boolean verifyLimit(String ip){
         String key = Const.VERIFY_EMAIL_LIMIT+ ip;
         return utils.limitOnceCheck(key,60);
     }
+
 }

@@ -2,8 +2,8 @@ package com.test.config;
 
 import com.test.entity.RestBean;
 import com.test.entity.dto.Account;
-import com.test.entity.service.AccountService;
-import com.test.entity.vo.AuthorizeVO;
+import com.test.service.AccountService;
+import com.test.entity.vo.response.AuthorizeVO;
 import com.test.filter.JwtAuthorizeFilter;
 import com.test.utils.JwtUtils;
 import jakarta.annotation.Resource;
@@ -20,13 +20,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.access.AccessDeniedHandler;
-import org.springframework.security.web.authentication.AuthenticationFailureHandler;
-import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 
-import javax.swing.plaf.PanelUI;
 import java.io.IOException;
 import java.io.PrintWriter;
 
