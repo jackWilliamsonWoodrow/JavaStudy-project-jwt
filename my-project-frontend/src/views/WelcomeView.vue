@@ -5,7 +5,7 @@
 <template>
   <div style="width: 100vw;height: 100vh;overflow: hidden;display: flex">
     <div style="flex: 1;background-color: black">
-      <el-image style="width: 100%;height: 100%" fit="cover" src="public/11.png"/>
+      <el-image style="width: 100%;height: 100%" fit="cover" src="/11.png"/>
     </div>
     <div class="welcome-title">
       <div style="font-size: 30px;font-weight: bold">欢迎来到我们滴学习平台</div>
