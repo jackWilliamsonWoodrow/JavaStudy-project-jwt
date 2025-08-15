@@ -12,7 +12,11 @@
       <div style="margin-top: 10px">只能说lbwnb，欢迎你来到这里学习如何使用java，并且与java之父密切交流</div>
     </div>
     <div class="right-card">
-      <router-view/>
+      <router-view v-slot="{ Component}">
+        <transition name="el-fade-in-linear" mode="out-in">
+          <component :is="Component"></component>
+        </transition>
+      </router-view>
     </div>
   </div>
 </template>
