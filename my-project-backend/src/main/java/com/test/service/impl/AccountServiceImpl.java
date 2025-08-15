@@ -3,7 +3,9 @@ package com.test.service.impl;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.test.entity.dto.Account;
+import com.test.entity.vo.request.ConfirmResetVo;
 import com.test.entity.vo.request.EmailRegisterVo;
+import com.test.entity.vo.request.EmailResetVo;
 import com.test.service.AccountService;
 import com.test.mapper.AccountMapper;
 import com.test.utils.Const;
@@ -11,6 +13,7 @@ import com.test.utils.FlowUtils;
 import jakarta.annotation.Resource;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.security.core.parameters.P;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -90,6 +93,28 @@ public class AccountServiceImpl extends ServiceImpl<AccountMapper, Account> impl
         }else {
             return "内部错误，请联系管理员";
         }
+    }
+    //重置密码
+    @Override
+    public String resetEmailAccountPassword(EmailResetVo vo) {
+        String email = vo.getEmail();
+        String verify = this.resetConfirm(new ConfirmResetVo(email, vo.getCode()));
+        if (verify != null) return verify;
+        String password = encoder.encode(vo.getPassword());
+        boolean update = this.update().eq("email",email).set("password",password).update();
+        if (update){
+            stringRedisTemplate.delete(Const.VERIFY_EMAIL_DATA + email);
+        }
+        return null;
+    }
+    //验证邮箱和验证码是否匹配
+    @Override
+    public String resetConfirm(ConfirmResetVo vo) {
+        String email = vo.getEmail();
+        String code = stringRedisTemplate.opsForValue().get(Const.VERIFY_EMAIL_DATA + email);
+        if (code == null) return "请先获取验证码";
+        if (!code.equals(vo.getCode())) return "验证码输入错误，请重新输入";
+        return null;
     }
 
     /**

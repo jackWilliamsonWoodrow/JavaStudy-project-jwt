@@ -1,7 +1,9 @@
 package com.test.controller;
 
 import com.test.entity.RestBean;
+import com.test.entity.vo.request.ConfirmResetVo;
 import com.test.entity.vo.request.EmailRegisterVo;
+import com.test.entity.vo.request.EmailResetVo;
 import com.test.service.AccountService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
@@ -34,6 +36,17 @@ public class AuthorizeController {
     public RestBean<Void> register(@RequestBody @Valid EmailRegisterVo vo){
         return this.messageHandle(() ->
                 service.registerEmailAccount(vo));
+    }
+
+
+    @PostMapping("/reset-confirm")
+    public RestBean<Void> resetConfirm(@RequestBody @Valid ConfirmResetVo vo){
+        return this.messageHandle(() -> service.resetConfirm(vo));
+    }
+
+    @PostMapping("/reset-password")
+    public RestBean<Void> resetPassword(@RequestBody @Valid EmailResetVo vo){
+        return this.messageHandle(() -> service.resetEmailAccountPassword(vo));
     }
 //supplier函数式接口不接收任何参数
 //@FunctionalInterface
