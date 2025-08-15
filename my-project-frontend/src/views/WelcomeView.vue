@@ -32,7 +32,7 @@
 .right-card{
   width: 400px;
   z-index: 1;
-  background-color: whitesmoke;
+  background-color: var(--el-bg-color);
 }
 
 </style>
