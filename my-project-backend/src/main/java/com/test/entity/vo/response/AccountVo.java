@@ -4,11 +4,11 @@ import com.test.entity.BaseData;
 import lombok.Data;
 
 import java.util.Date;
-//vo(view object)视图对象，与前端交互所使用封装的对象
+
 @Data
-public class AuthorizeVO{
+public class AccountVo{
     String username;
+    String email;
     String role;
-    String token;;
-    Date expire;
+    Date registerTime;
 }

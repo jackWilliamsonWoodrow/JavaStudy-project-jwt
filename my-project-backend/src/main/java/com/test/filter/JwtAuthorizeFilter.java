@@ -34,8 +34,6 @@ public class JwtAuthorizeFilter extends OncePerRequestFilter {
             authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authenticationToken);
             request.setAttribute("id",utils.toId(decodedJWT));
-
-
         }
         filterChain.doFilter(request,response);
 

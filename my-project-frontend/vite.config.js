@@ -12,10 +12,17 @@ export default defineConfig({
     vue(),
     vueDevTools(),
     AutoImport({
-      resolvers: [ElementPlusResolver()],
+      imports: ['vue', 'vue-router', 'pinia'],
+      resolvers: [ElementPlusResolver({
+        // importStyle: false, // 避免自动导入 CSS（如果不需要）
+        // 自动导入图标
+        icons: true,
+      })],
     }),
     Components({
-      resolvers: [ElementPlusResolver()],
+      resolvers: [ElementPlusResolver({
+        icons: true,
+      })],
     }),
   ],
 

@@ -60,6 +60,14 @@ public class AccountServiceImpl extends ServiceImpl<AccountMapper, Account> impl
     }
 
     @Override
+    public Account findAccountById(int id) {
+        return this.query()
+                .eq("id",id)
+                .one();
+
+    }
+
+    @Override
     public String registerEmailVerifyCode(String type, String email, String ip) {
         synchronized (ip.intern()){
             if (!this.verifyLimit(ip))
