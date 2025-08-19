@@ -6,7 +6,6 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.test.entity.BaseData;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 
 import java.util.Date;
 //DTO（Data Transfer Object）：主要用于在展示层与服务层之间传输数据，不包含业务逻辑。
@@ -21,5 +20,6 @@ public class Account implements BaseData {
     String password;
     String email;
     String role;
+    String avatar;
     Date registerTime;
 }

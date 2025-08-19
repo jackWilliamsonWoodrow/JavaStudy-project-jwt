@@ -172,7 +172,7 @@ function userLogout() {
                     <span><b>个人资料设置</b></span>
                   </template>
                 </el-menu-item>
-                <el-menu-item>
+                <el-menu-item index="/index/privacy-setting">
                   <template #title>
                     <el-icon><Operation /></el-icon>
                     <span><b>账号安全设置</b></span>

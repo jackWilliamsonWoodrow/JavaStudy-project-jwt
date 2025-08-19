@@ -1,10 +1,12 @@
 package com.test.entity;
 
-import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.function.Consumer;
 
+/**
+ * 用于DTO快速转换VO实现，只需将DTO类继承此类即可使用
+ */
 public interface BaseData {
     default <V> V asViewObject(Class<V> clazz, Consumer<V> consumer){
         V v = this.asViewObject(clazz);

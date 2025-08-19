@@ -29,9 +29,18 @@ const router = createRouter({
         component: () => import('@/views/IndexView.vue'),
         children: [
             {
+                path: '',
+                name: 'topic-list',
+                component: () => import('@/views/forum/TopicList.vue')
+            },
+            {
                 path: 'user-setting',
                 name: 'user-setting',
                 component: () => import('@/views/settings/UserSettings.vue')
+            },{
+                path: 'privacy-setting',
+                name: 'privacy-setting',
+                component: () => import('@/views/settings/PirvacySetting.vue')
             }
         ]
         }
