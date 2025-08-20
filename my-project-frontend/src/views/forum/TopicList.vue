@@ -4,6 +4,7 @@ import LightCard from "@/components/LightCard.vue";
 import {Calendar, Collection, Edit, Link} from "@element-plus/icons-vue";
 import Weather from "@/components/Weather.vue";
 import {get} from "@/net/index.js";
+import {ElMessage} from "element-plus";
 
 const weather = reactive({
   location: {},
@@ -23,6 +24,16 @@ navigator.geolocation.getCurrentPosition(position => {
     Object.assign(weather,data)
     weather.success = true
   })
+},error =>{
+  console.info(error)
+  ElMessage.warning('位置信息获取超时请检查网络')
+  get('/api/forum/weather?longitude=116.40529&latitude=39.90499',data =>{
+    Object.assign(weather,data)
+    weather.success = true
+  })
+},{
+  timeout: 3000,
+  enableHighAccuracy: true
 })
 </script>
 
@@ -63,7 +74,7 @@ navigator.geolocation.getCurrentPosition(position => {
             天气信息
           </div>
           <el-divider style="margin: 10px 0"/>
-          <weather/>
+          <weather :data="weather"/>
         </light-card>
         <light-card style="margin-top: 10px">
           <div class="info-text">
