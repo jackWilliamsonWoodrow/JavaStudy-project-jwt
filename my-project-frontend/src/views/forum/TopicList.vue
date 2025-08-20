@@ -5,6 +5,7 @@ import {Calendar, Collection, Edit, Link} from "@element-plus/icons-vue";
 import Weather from "@/components/Weather.vue";
 import {get} from "@/net/index.js";
 import {ElMessage} from "element-plus";
+import TopicEditor from "@/components/TopicEditor.vue";
 
 const weather = reactive({
   location: {},
@@ -12,6 +13,8 @@ const weather = reactive({
   hourly: [],
   success: false
 })
+
+const editor = ref(false)
 const today = computed(() => {
   const date = new Date()
   return `${date.getFullYear()} 年 ${date.getMonth() + 1} 月 ${date.getDate()} 日`
@@ -41,9 +44,9 @@ navigator.geolocation.getCurrentPosition(position => {
   <div style="display: flex;margin: 20px auto;gap: 20px;max-width: 900px">
     <div style="flex: 1">
       <light-card>
-        <div class="create-topic">
+        <div class="create-topic" @click="editor = true">
           <el-icon><Edit/></el-icon>
-          点击发表主题...
+          点击发表帖子...
         </div>
       </light-card>
       <light-card style="height: 30px;margin-top: 10px">
@@ -54,7 +57,6 @@ navigator.geolocation.getCurrentPosition(position => {
 
         </light-card>
       </div>
-
     </div>
     <div style="width: 280px">
       <div style="position: sticky;top: 20px">
@@ -98,6 +100,7 @@ navigator.geolocation.getCurrentPosition(position => {
         </div>
       </div>
     </div>
+    <topic-editor :show="editor" @close="editor = false"/>
   </div>
 
 </template>
@@ -116,7 +119,7 @@ navigator.geolocation.getCurrentPosition(position => {
 .create-topic{
   color: grey;
   background-color: #efefef;
-  border-radius: 40px;
+  border-radius: 5px;
   height: 40px;
   font-size: 14px;
   line-height: 40px;
