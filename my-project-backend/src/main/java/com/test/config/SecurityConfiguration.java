@@ -41,6 +41,7 @@ public class SecurityConfiguration {
         return http
                 .authorizeHttpRequests( auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/images/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(conf -> conf

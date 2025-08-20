@@ -17,6 +17,8 @@ import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -78,6 +80,7 @@ public class AccountController {
         return RestBean.success(accountPrivacyService.accountPrivacy(id).asViewObject(AccountPrivacyVo.class));
 
     }
+
 
     private RestBean<Void> messageHandle(Supplier<String> action){
         String message = action.get();

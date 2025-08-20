@@ -64,7 +64,7 @@ function userLogout() {
           </div>
           <el-dropdown>
             <el-avatar
-                src="https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png"
+                :src="store.avatarUrl"
             />
             <template #dropdown>
               <el-dropdown-item>
@@ -87,13 +87,13 @@ function userLogout() {
         <el-aside width="230px">
           <el-scrollbar style="height: calc(100vh - 55px)">
             <el-menu router
-                default-active="1-1" style="height: calc(100vh - 55px)">
+                :default-active="$route.path" style="height: calc(100vh - 55px)">
               <el-sub-menu index="1">
                 <template #title>
                   <el-icon><Location/></el-icon>
                   <span><b>校园论坛</b></span>
                 </template>
-                <el-menu-item index="1-1">
+                <el-menu-item index="/index">
                   <template #title>
                     <el-icon><ChatDotSquare/></el-icon>
                     帖子广场

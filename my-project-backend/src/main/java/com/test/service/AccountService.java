@@ -9,6 +9,8 @@ import com.test.entity.vo.request.ModifyEmailVo;
 import com.test.entity.vo.request.ChangePasswordVo;
 import org.springframework.security.core.userdetails.UserDetailsService;
 
+import java.net.UnknownHostException;
+
 public interface AccountService extends IService<Account>, UserDetailsService {
     Account findAccountByNameOrEmail(String text);
     Account findAccountById(int id);
@@ -20,5 +22,6 @@ public interface AccountService extends IService<Account>, UserDetailsService {
     String modifyEmail(int id, ModifyEmailVo vo);
 
     String changePassword(int id, ChangePasswordVo vo);
+
 
 }
