@@ -4,6 +4,7 @@ import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.test.entity.vo.response.WeatherVo;
 import com.test.service.WeatherService;
+import com.test.utils.Const;
 import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -44,7 +45,7 @@ public class WeatherServiceImpl implements WeatherService {
         // 2. 解析位置信息获取城市ID
         JSONObject location = geo.getJSONArray("location").getJSONObject(0);
         int id = location.getInteger("id");
-        String key = "weather:"+id; // 构造Redis键
+        String key = Const.FORUM_WEATHER_CACHE +id; // 构造Redis键
 
         // 3. 检查Redis缓存
         String cache = stringRedisTemplate.opsForValue().get(key);

@@ -1,30 +1,132 @@
 <script setup>
 import {Document} from "@element-plus/icons-vue";
-import {QuillEditor} from "@vueup/vue-quill";
+import {Quill, QuillEditor} from "@vueup/vue-quill";
+import ImageResize from "quill-image-resize-vue";
+import {ImageExtend,QuillWatch} from "quill-image-super-solution-module";
 import "@vueup/vue-quill/dist/vue-quill.snow.css"
+import axios from "axios";
+import {ElMessage} from "element-plus";
+import {accessHeader, post} from "@/net/index.js";
+import {get} from "@/net/index.js";
+import ColorDot from "@/components/ColorDot.vue";
 
 defineProps({
   show: Boolean
 })
+
+Quill.register('modules/imageResize',ImageResize)
+Quill.register('modules/ImageExtend',ImageExtend)
+
+get('/api/forum/types',data => editor.types = data)
+
 const editor = reactive({
   type: null,
   title: '',
-  text: ''
+  text: '',
+  loading: '',
+  types: ''
 })
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close','success'])
 
-const types = [
-  {id: 1,name: '日常闲聊',desc: '在这里分享你的日常'},
-  {id: 2,name: '真诚交友',desc: 'dddddd'},
-  {id: 3,name: '问题反馈',desc: '在这里分享eeeeee你的日常'},
-  {id: 4,name: '恋爱官宣',desc: '在这eewrwe日常'},
-]
+const refEditor = ref()
+
+
+const editorOption = {
+  modules: {
+    toolbar: {
+      container: [
+        "bold", "italic", "underline", "strike","clean",
+        {color: []}, {'background': []},
+        {size: ["small", false, "large", "huge"]},
+        { header: [1, 2, 3, 4, 5, 6, false] },
+        {list: "ordered"}, {list: "bullet"}, {align: []},
+        "blockquote", "code-block", "link", "image",
+        { indent: '-1' }, { indent: '+1' }
+      ],
+      handlers: {
+        'image': function () {
+          QuillWatch.emit(this.quill.id)
+        }
+      }
+    },
+    imageResize: {
+      modules: [ 'Resize', 'DisplaySize' ]
+    },
+    ImageExtend: {
+      action:  axios.defaults.baseURL + '/api/image/cache',
+      name: 'file',
+      size: 5,
+      loading: true,
+      accept: 'image/png, image/jpeg',
+      response: (resp) => {
+        if(resp.data) {
+          return axios.defaults.baseURL + '/images' + resp.data
+        } else {
+          return null
+        }
+      },
+      methods: 'POST',
+      headers: xhr => {
+        xhr.setRequestHeader('Authorization', accessHeader().Authorization);
+      },
+      start: () => editor.uploading = true,
+      success: () => {
+        ElMessage.success('图片上传成功!')
+        editor.uploading = false
+      },
+      error: () => {
+        ElMessage.warning('图片上传失败，请联系管理员!')
+        editor.uploading = false
+      }
+    }
+  }
+}
+
+function submitTopic() {
+  const text = deltaToText(editor.text)
+  if(text.length > 20000) {
+    ElMessage.warning('字数超出限制，无法发布主题！')
+    return
+  }
+  if(!editor.title) {
+    ElMessage.warning('请填写标题！')
+    return
+  }
+  if(!editor.type) {
+    ElMessage.warning('请选择一个合适的帖子类型！')
+    return
+  }
+  post('api/forum/create-topic',{
+    type: editor.type.id,
+    title: editor.title,
+    content: editor.text
+  },()=>{
+    ElMessage.success('帖子发表成功')
+    emit('success')
+  })
+}
+const contentLength = computed(() => deltaToText(editor.text).length)
+
+function deltaToText(delta){
+  if (!delta.ops) return ""
+  let str = ""
+  for (let op of delta.ops)
+    str += op.insert
+  return str.replace(/\s/g,"")
+}
+
+function initEditor(){
+  refEditor.value.setContents('', 'user')
+  editor.title = ''
+  editor.type = null
+}
 </script>
 
 <template>
   <div>
     <el-drawer :model-value="show"
                :direction="'btt'" :size="600"
+               :on-open="initEditor"
                :close-on-click-modal="false" @close="emit('close')">
       <template #header>
         <div>
@@ -34,24 +136,37 @@ const types = [
       </template>
       <div style="display: flex;gap: 10px">
         <div style="width: 150px">
-          <el-select placeholder="请选择主题类型..." v-model="editor.type">
-            <el-option v-for="item in types" :value="item.id" :label="item.name"></el-option>
+          <el-select placeholder="请选择主题类型..." value-key="id" v-model="editor.type"  :disabled="!editor.types.length">
+            <el-option v-for="item in editor.types" :value="item" :label="item.name">
+              <div>
+                <color-dot :color="item.color"/>
+                <span style="margin-left: 10px">{{item.name}}</span>
+              </div>
+            </el-option>
           </el-select>
         </div>
         <div style="flex: 1">
-          <el-input style="height: 100%" v-model="editor.title" placeholder="请输入帖子标题" :prefix-icon="Document"/>
+          <el-input style="height: 100%" minlength="1" maxlength="40" v-model="editor.title" placeholder="请输入帖子标题" :prefix-icon="Document"/>
         </div>
       </div>
-      <div style="margin-top: 10px;height: 410px">
-        <quill-editor v-model:content="editor.text" style="height: calc(100% - 45px)"
+      <div style="margin-top: 10px;font-size: 13px;color: gray">
+        <color-dot :color="editor.type ? editor.type.color : '#FFFFFF'"/>
+        <span style="margin-left: 5px">{{editor.type ? editor.type.desc : '请在上方选择帖子类型'}}</span>
+      </div>
+      <div style="margin-top: 10px;height: 444px; border-radius: 5px;"
+           v-loading="editor.uploading" element-loading-text="正在上传图片，请稍候">
+        <quill-editor v-model:content="editor.text"
+                      content-type="delta"
+                      style="height: calc(100% - 45px)" ref="refEditor"
+                      :options="editorOption"
         placeholder="今天想分享点什么呢？"/>
       </div>
       <div style="display: flex;justify-content: space-between;margin-top: 5px">
         <div style="color: grey;font-size: 13px">
-          当前字数666
+          当前字数{{ contentLength }}(最高支持20000字)
         </div>
         <div>
-          <el-button type="success" plain>立即发布</el-button>
+          <el-button @click="submitTopic" type="success" plain>立即发布</el-button>
         </div>
       </div>
     </el-drawer>

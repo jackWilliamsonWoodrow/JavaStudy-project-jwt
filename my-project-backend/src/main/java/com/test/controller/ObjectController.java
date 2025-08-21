@@ -17,7 +17,7 @@ public class ObjectController {
     @Resource
     ImageService imageService;
 
-    @GetMapping("/images/avatar/**")
+    @GetMapping("/images/**")
     public void imageFetch(HttpServletRequest request, HttpServletResponse response) throws Exception {
         this.fetchImage(request, response);
     }
@@ -50,6 +50,7 @@ response.setHeader("Cache-Control", "max-age=2592000");
             try {
                 imageService.fetchImageFromMinio(stream,imagePath);
                 response.setHeader("Cache-Control","max-age=2592000");
+                response.setHeader("Content-Type","image/jpg");
             } catch (ErrorResponseException e) {
                 if (e.response().code() == 404){
                     response.setStatus(404);
