@@ -9,7 +9,10 @@ import {ElMessage} from "element-plus";
 import {accessHeader, post} from "@/net/index.js";
 import {get} from "@/net/index.js";
 import ColorDot from "@/components/ColorDot.vue";
+import {userStore} from "@/store/index.js";
 
+
+const store = userStore()
 defineProps({
   show: Boolean
 })
@@ -17,14 +20,12 @@ defineProps({
 Quill.register('modules/imageResize',ImageResize)
 Quill.register('modules/ImageExtend',ImageExtend)
 
-get('/api/forum/types',data => editor.types = data)
 
 const editor = reactive({
   type: null,
   title: '',
   text: '',
-  loading: '',
-  types: ''
+  loading: ''
 })
 const emit = defineEmits(['close','success'])
 
@@ -136,8 +137,8 @@ function initEditor(){
       </template>
       <div style="display: flex;gap: 10px">
         <div style="width: 150px">
-          <el-select placeholder="请选择主题类型..." value-key="id" v-model="editor.type"  :disabled="!editor.types.length">
-            <el-option v-for="item in editor.types" :value="item" :label="item.name">
+          <el-select placeholder="请选择主题类型..." value-key="id" v-model="editor.type"  :disabled="!store.forum.types.length">
+            <el-option v-for="item in store.forum.types" :value="item" :label="item.name">
               <div>
                 <color-dot :color="item.color"/>
                 <span style="margin-left: 10px">{{item.name}}</span>

@@ -19,4 +19,6 @@ public class Const {
     public static final String FORUM_IMAGE_COUNTER = "form:image:";
     public static final String FORUM_TOPIC_CREATE_COUNTER = "form:topic:create:";
 
+    public static final String FORUM_TOPIC_PREVIEW_CACHE = "topic:preview:";
+
 }
