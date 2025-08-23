@@ -12,7 +12,7 @@ get(`api/forum/topic?tid=${tid}`,data =>{
 </script>
 
 <template>
-
+1
 </template>
 
 <style scoped>
