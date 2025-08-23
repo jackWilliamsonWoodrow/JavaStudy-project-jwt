@@ -2,9 +2,7 @@ package com.test.controller;
 
 import com.test.entity.RestBean;
 import com.test.entity.vo.request.TopicCreateVo;
-import com.test.entity.vo.response.TopicPreviewVo;
-import com.test.entity.vo.response.TopicTypeVo;
-import com.test.entity.vo.response.WeatherVo;
+import com.test.entity.vo.response.*;
 import com.test.service.TopicService;
 import com.test.service.WeatherService;
 import com.test.utils.ControllerUtils;
@@ -51,6 +49,18 @@ public class ForumController {
     @GetMapping("/list-topic")
     public RestBean<List<TopicPreviewVo>> listTopic(@RequestParam @Min(0) int page,
                                                     @RequestParam @Min(0) int type){
-        return RestBean.success(topicService.listTopicByPage(page,type));
+        return RestBean.success(topicService.listTopicByPage(page+1,type));
     }
+
+    @GetMapping("/top-topic")
+    public RestBean<List<TopicTopVo>> topTopic(){
+        return RestBean.success(topicService.listTopTopic());
+    }
+
+    @GetMapping("/topic")
+    public RestBean<TopicDetailVo> topic(@RequestParam @Min(0) int tid){
+        return RestBean.success(topicService.getTopic(tid));
+    }
+
+
 }

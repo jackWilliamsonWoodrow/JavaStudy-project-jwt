@@ -2,13 +2,16 @@ package com.test.service.impl;
 
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.test.entity.dto.Topic;
-import com.test.entity.dto.TopicType;
+import com.google.common.annotations.Beta;
+import com.test.entity.dto.*;
 import com.test.entity.vo.request.TopicCreateVo;
+import com.test.entity.vo.response.TopicDetailVo;
 import com.test.entity.vo.response.TopicPreviewVo;
-import com.test.mapper.TopicMapper;
-import com.test.mapper.TopicTypeMapper;
+import com.test.entity.vo.response.TopicTopVo;
+import com.test.mapper.*;
 import com.test.service.TopicService;
 import com.test.utils.CacheUtils;
 import com.test.utils.Const;
@@ -32,6 +35,13 @@ public class TopicServiceImpl extends ServiceImpl<TopicMapper, Topic> implements
     FlowUtils flowUtils;
     @Resource
     CacheUtils cacheUtils;
+
+    @Resource
+    AccountMapper accountMapper;
+    @Resource
+    AccountDetailsMapper accountDetailsMapper;
+    @Resource
+    AccountPrivacyMapper accountPrivacyMapper;
     private Set<Integer> types;
     @PostConstruct
     public void init() {
@@ -83,7 +93,7 @@ public class TopicServiceImpl extends ServiceImpl<TopicMapper, Topic> implements
 
         // 7. 持久化操作：保存主题到数据库
         if (this.save(topic)){
-            cacheUtils.deleteCache(Const.FORUM_TOPIC_PREVIEW_CACHE+"*");
+            cacheUtils.deleteCachePattern(Const.FORUM_TOPIC_PREVIEW_CACHE+"*");
             // 保存成功，返回null表示操作成功
             return null;
         }else {
@@ -96,26 +106,28 @@ public class TopicServiceImpl extends ServiceImpl<TopicMapper, Topic> implements
      * 分页获取主题列表预览信息
      * 根据类型筛选主题，并转换为前端所需的预览格式
      *
-     * @param page 页码（从0开始）
+     * @param pageNumber 页码（从1开始）
      * @param type 主题类型（0表示所有类型，其他值表示特定类型）
      * @return 主题预览列表，如果没有数据返回null
      */
     @Override
-    public List<TopicPreviewVo> listTopicByPage(int page, int type) {
-        String key = Const.FORUM_TOPIC_PREVIEW_CACHE +page+ ":" +type;
+    public List<TopicPreviewVo> listTopicByPage(int pageNumber, int type) {
+        String key = Const.FORUM_TOPIC_PREVIEW_CACHE +pageNumber+ ":" +type;
         List<TopicPreviewVo> list = cacheUtils.takeListFromCache(key, TopicPreviewVo.class);
         if (list != null) return list;
-        List<Topic> topics;
+        Page<Topic> page = Page.of(pageNumber,10);
 
-        // 根据类型选择不同的查询方式
+        // 根据类型选择不同的查
+        // 询方式
         if (type == 0){
             // 查询所有类型的主题，每页10条
-            topics = baseMapper.topicList(page * 10);
+            baseMapper.selectPage(page,Wrappers.<Topic>query().orderByDesc("time"));
         }else {
             // 查询指定类型的主题，每页10条
-            topics = baseMapper.topicListByType(page * 10, type);
+            baseMapper.selectPage(page,Wrappers.<Topic>query().eq("type",type).orderByDesc("time"));
         }
 
+        List<Topic> topics = page.getRecords();
         // 如果查询结果为空，直接返回null
         if(topics.isEmpty()) return null;
 
@@ -128,6 +140,38 @@ public class TopicServiceImpl extends ServiceImpl<TopicMapper, Topic> implements
         return list; // 这里应该是 return list;
     }
 
+    @Override
+    public List<TopicTopVo> listTopTopic() {
+        List<Topic> topics = baseMapper.selectList(Wrappers.<Topic>query()
+                .select("id","title","time")
+                .eq("top",1));
+        return topics.stream().map(topic -> {
+            TopicTopVo vo = new TopicTopVo();
+            BeanUtils.copyProperties(topic,vo);
+            return vo;
+        }).toList();
+    }
+//获取帖子详情
+    @Override
+    public TopicDetailVo getTopic(int tid) {
+        TopicDetailVo vo = new TopicDetailVo();
+        Topic topic = baseMapper.selectById(tid);
+        BeanUtils.copyProperties(topic,vo);
+        TopicDetailVo.User user = new TopicDetailVo.User();
+        vo.setUser(this.fillUserDetailsByPrivacy(user,topic.getUid()));
+        return vo;
+    }
+
+    private <T> T fillUserDetailsByPrivacy(T target,int uid){
+        AccountDetails details = accountDetailsMapper.selectById(uid);
+        Account account = accountMapper.selectById(uid);
+        AccountPrivacy accountPrivacy = accountPrivacyMapper.selectById(uid);
+        String[] ignores = accountPrivacy.hiddenFields();
+        BeanUtils.copyProperties(account,target,ignores);
+        BeanUtils.copyProperties(details,target,ignores);
+        return target;
+    }
+
     /**
      * 将Topic实体转换为前端预览使用的VO对象
      * 提取文本预览和图片列表
@@ -138,7 +182,12 @@ public class TopicServiceImpl extends ServiceImpl<TopicMapper, Topic> implements
     private TopicPreviewVo resolveToPreview(Topic topic){
         // 创建预览VO对象并复制基本属性
         TopicPreviewVo vo = new TopicPreviewVo();
+        //用户的信息单独再从用户表查一遍
+        BeanUtils.copyProperties(accountMapper.selectById(topic.getUid()),vo);
+
+        //帖子的信息在帖子表里查
         BeanUtils.copyProperties(topic, vo);
+
 
         // 用于存储主题中的图片URL列表
         List<String> images = new ArrayList<>();

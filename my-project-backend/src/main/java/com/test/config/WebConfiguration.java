@@ -1,5 +1,8 @@
 package com.test.config;
 
+import com.baomidou.mybatisplus.annotation.DbType;
+import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -23,4 +26,14 @@ RestTemplate 是Spring框架中的一个同步HTTP客户端，
     public RestTemplate restTemplate(){
         return new RestTemplate();
     }
+
+
+//mybatis-plus内部实现分页功能
+    @Bean
+    public PaginationInnerInterceptor paginationInnerInterceptor(){
+        PaginationInnerInterceptor paginationInnerInterceptor = new PaginationInnerInterceptor((DbType.MYSQL));
+        paginationInnerInterceptor.setMaxLimit(100L);
+        return paginationInnerInterceptor;
+    }
+
 }

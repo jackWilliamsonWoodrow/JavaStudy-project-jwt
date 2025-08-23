@@ -6,7 +6,10 @@ import jakarta.annotation.Resource;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Component
@@ -30,6 +33,10 @@ public class CacheUtils {
     }
     public <T> void saveListToCache(String key, T data, long expire){
         stringRedisTemplate.opsForValue().set(key, JSONArray.from(data).toJSONString(),expire, TimeUnit.SECONDS);
+    }
+    public void deleteCachePattern(String key){
+        Set<String> keys = Optional.ofNullable(stringRedisTemplate.keys(key)).orElse(Collections.emptySet());
+        stringRedisTemplate.delete(keys);
     }
 
     public void deleteCache(String key){

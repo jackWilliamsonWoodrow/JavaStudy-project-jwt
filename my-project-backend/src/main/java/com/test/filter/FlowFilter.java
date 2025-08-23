@@ -96,7 +96,7 @@ public class FlowFilter extends HttpFilter {
                     .orElse(0L);
 
             // 如果计数超过阈值（10次）
-            if (increment > 10) {
+            if (increment > 30) {
                 // 将IP加入黑名单，设置30秒过期时间
                 stringRedisTemplate.opsForValue().set(
                         Const.FLOW_LIMIT_BLOCK + ip,
