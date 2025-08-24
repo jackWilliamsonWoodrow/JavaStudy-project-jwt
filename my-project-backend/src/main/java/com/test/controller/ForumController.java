@@ -1,6 +1,7 @@
 package com.test.controller;
 
 import com.test.entity.RestBean;
+import com.test.entity.dto.Interact;
 import com.test.entity.vo.request.TopicCreateVo;
 import com.test.entity.vo.response.*;
 import com.test.service.TopicService;
@@ -9,8 +10,10 @@ import com.test.utils.ControllerUtils;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Pattern;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Date;
 import java.util.List;
 
 @RestController
@@ -60,6 +63,16 @@ public class ForumController {
     @GetMapping("/topic")
     public RestBean<TopicDetailVo> topic(@RequestParam @Min(0) int tid){
         return RestBean.success(topicService.getTopic(tid));
+    }
+    @GetMapping("/interact")
+    public RestBean<Void> interact(@RequestParam @Min(0) int tid,
+                                   @RequestParam @Pattern(regexp = "(like|collect)") String type,
+                                   @RequestParam boolean state,
+                                   @RequestAttribute("id") int id){
+        topicService.interact(new Interact(tid,id,new Date(),type),state);
+        return RestBean.success();
+
+
     }
 
 

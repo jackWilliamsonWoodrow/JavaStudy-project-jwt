@@ -2,12 +2,11 @@ package com.test.config;
 
 import com.test.entity.RestBean;
 import com.test.entity.dto.Account;
-import com.test.service.AccountService;
 import com.test.entity.vo.response.AuthorizeVO;
 import com.test.filter.JwtAuthorizeFilter;
+import com.test.service.AccountService;
 import com.test.utils.JwtUtils;
 import jakarta.annotation.Resource;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
@@ -63,7 +62,7 @@ public class SecurityConfiguration {
 
     }
 
-    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
+    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException{
         response.setContentType("application/json");
         response.setCharacterEncoding("utf-8");
         User user = (User) authentication.getPrincipal();
@@ -89,13 +88,13 @@ public class SecurityConfiguration {
         response.getWriter().write(RestBean.unauthorized(exception.getMessage()).asJsonString());
     }
 
-    public void accessDeniedHandle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException) throws IOException, ServletException {
+    public void accessDeniedHandle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException) throws IOException{
         response.setContentType("application/json");
         response.setCharacterEncoding("utf-8");
         response.getWriter().write(RestBean.forbidden(accessDeniedException.getMessage()).asJsonString());
     }
 
-    public void onLogoutSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
+    public void onLogoutSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException{
         response.setContentType("application/json");
         response.setCharacterEncoding("utf-8");
         PrintWriter responseWriter = response.getWriter();

@@ -10,10 +10,12 @@ import {userStore} from "@/store/index.js";
 import axios from "axios";
 import ColorDot from "@/components/ColorDot.vue";
 import router from "@/router/index.js";
+import TopicTag from "@/components/TopicTag.vue";
 
 
 const type = ref(0)
 const store = userStore()
+
 const topics = reactive({
   list: [],
   type: 0,
@@ -37,12 +39,6 @@ watch(() => topics.type,()=> {
   resetList()
 },{immediate: true})
 
-get('/api/forum/types',data => {
-  const array = []
-  array.push({name: '全部', id: 0,color: 'linear-gradient(45deg,white,red,orange,gold,green,blue'})
-  data.forEach(d => array.push(d))
-  store.forum.types = array
-})
 
 get('/api/forum/top-topic',data => topics.top = data)
 function updateList(){
@@ -110,7 +106,7 @@ navigator.geolocation.getCurrentPosition(position => {
         </div>
       </light-card>
       <light-card style="margin-top: 10px;display: flex;flex-direction: column;gap: 10px">
-        <div v-for="item in topics.top" class="top-topic">
+        <div @click="router.push(`/index/topic-detail/${item.id}`)" v-for="item in topics.top" class="top-topic">
           <el-tag type="info" size="small">置顶</el-tag>
           <div>{{item.title}}</div>
           <div>{{new Date(item.time).toLocaleString()}}</div>
@@ -142,14 +138,7 @@ navigator.geolocation.getCurrentPosition(position => {
                 </div>
               </div>
               <div>
-                <div class="topic-type"
-                     :style="{
-                      color: store.findTypeById(item.type)?.color +'EE',
-                      'border-color': store.findTypeById(item.type)?.color +'DD',
-                      'background-color': store.findTypeById(item.type)?.color + '33'
-                   }">
-                  {{store.findTypeById(item.type)?.name}}
-                </div>
+                <topic-tag :type="item.type"/>
                 <span style="font-weight: bold;margin-left: 7px">{{item.title}}</span>
               </div>
               <div class="topic-content">
@@ -266,13 +255,6 @@ navigator.geolocation.getCurrentPosition(position => {
     -webkit-line-clamp: 3;
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-  .topic-type{
-    display: inline-block;
-    border: solid 0.5px grey;
-    border-radius: 5px;
-    font-size: 12px;
-    padding: 0 5px;
   }
   .topic-image{
     width: 100%;

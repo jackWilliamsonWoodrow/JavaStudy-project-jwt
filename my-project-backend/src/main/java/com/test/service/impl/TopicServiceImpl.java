@@ -5,7 +5,6 @@ import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.google.common.annotations.Beta;
 import com.test.entity.dto.*;
 import com.test.entity.vo.request.TopicCreateVo;
 import com.test.entity.vo.response.TopicDetailVo;
@@ -19,10 +18,13 @@ import com.test.utils.FlowUtils;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -42,6 +44,8 @@ public class TopicServiceImpl extends ServiceImpl<TopicMapper, Topic> implements
     AccountDetailsMapper accountDetailsMapper;
     @Resource
     AccountPrivacyMapper accountPrivacyMapper;
+    @Resource
+    StringRedisTemplate stringRedisTemplate;
     private Set<Integer> types;
     @PostConstruct
     public void init() {
@@ -160,6 +164,86 @@ public class TopicServiceImpl extends ServiceImpl<TopicMapper, Topic> implements
         TopicDetailVo.User user = new TopicDetailVo.User();
         vo.setUser(this.fillUserDetailsByPrivacy(user,topic.getUid()));
         return vo;
+    }
+
+    /**
+     * 用户互动操作处理服务
+     */
+    @Override
+    public void interact(Interact interact, boolean state) {
+        String type = interact.getType();
+
+        // 使用字符串驻留实现基于类型的细粒度锁，避免不同类型操作之间的锁竞争
+        synchronized (type.intern()) {
+            // 将互动状态存储到Redis哈希表中，key为互动类型，field为互动唯一标识，value为状态
+            stringRedisTemplate.opsForHash().put(type, interact.toKey(), Boolean.toString(state));
+
+            // 触发定时保存任务
+            this.saveInteractSchedule(type);
+        }
+    }
+
+    // 用于跟踪各类型互动是否已经安排了保存任务的状态映射
+    private final Map<String, Boolean> state = new HashMap<>();
+
+    // 创建定时任务线程池，用于延迟执行数据库保存操作
+    ScheduledExecutorService service = Executors.newScheduledThreadPool(2);
+
+    /**
+     * 安排互动数据的延迟保存任务
+     * @param type 互动类型
+     */
+    private void saveInteractSchedule(String type) {
+        // 检查该类型是否已经安排了保存任务，避免重复安排
+        if (!state.getOrDefault(type, false)) {
+            // 标记该类型已有保存任务安排
+            state.put(type, true);
+
+            // 安排一个延迟3秒执行的任务，实现批量操作的缓冲效果
+            service.schedule(() -> {
+                // 执行实际的数据库保存操作
+                this.saveInteract(type);
+
+                // 重置该类型的任务状态，允许新的保存任务安排
+                state.put(type, false);
+            }, 3, TimeUnit.SECONDS);
+        }
+    }
+
+    /**
+     * 将Redis中的互动数据保存到数据库
+     * @param type 互动类型
+     */
+    private void saveInteract(String type) {
+        // 再次加锁确保线程安全
+        synchronized (type.intern()) {
+            // 创建列表分别存储要点赞/取消点赞的数据
+            List<Interact> check = new LinkedList<>();
+            List<Interact> unCheck = new LinkedList<>();
+
+            // 从Redis哈希表中获取该类型的所有互动数据
+            stringRedisTemplate.opsForHash().entries(type).forEach((k, v) -> {
+                // 根据状态值分类处理
+                if (Boolean.parseBoolean(v.toString())) {
+                    // 状态为true的互动（如点赞）
+                    check.add(Interact.parseInteract(k.toString(), type));
+                } else {
+                    // 状态为false的互动（如取消点赞）
+                    unCheck.add(Interact.parseInteract(k.toString(), type));
+                }
+            });
+
+            // 批量处理要点赞的互动数据
+            if (!check.isEmpty())
+                baseMapper.addInteract(check, type);
+
+            // 批量处理要取消点赞的互动数据
+            if (!unCheck.isEmpty())
+                baseMapper.deleteInteract(unCheck, type); // 注意：这里应该是unCheck而不是check
+
+            // 清空Redis中该类型的临时数据
+            stringRedisTemplate.delete(type);
+        }
     }
 
     private <T> T fillUserDetailsByPrivacy(T target,int uid){

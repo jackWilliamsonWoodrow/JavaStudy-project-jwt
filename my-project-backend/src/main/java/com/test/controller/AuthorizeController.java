@@ -14,8 +14,6 @@ import jakarta.validation.constraints.Pattern;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.function.Supplier;
-
 @Validated
 @RestController
 @RequestMapping("/api/auth")
