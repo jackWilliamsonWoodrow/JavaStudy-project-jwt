@@ -1,6 +1,5 @@
 package com.test.entity.vo.response;
 
-import com.baomidou.mybatisplus.core.handlers.StrictFill;
 import lombok.Data;
 
 import java.util.Date;
@@ -16,4 +15,6 @@ public class TopicPreviewVo {
     Integer uid;
     String username;
     String avatar;
+    int like;
+    int collect;
 }

@@ -1,20 +1,50 @@
 <script setup>
 import {Document} from "@element-plus/icons-vue";
-import {Quill, QuillEditor} from "@vueup/vue-quill";
+import {computed, reactive, ref} from "vue";
+import {Delta, Quill, QuillEditor} from "@vueup/vue-quill";
 import ImageResize from "quill-image-resize-vue";
-import {ImageExtend,QuillWatch} from "quill-image-super-solution-module";
-import "@vueup/vue-quill/dist/vue-quill.snow.css"
+import { ImageExtend, QuillWatch } from "quill-image-super-solution-module";
+import '@vueup/vue-quill/dist/vue-quill.snow.css';
 import axios from "axios";
+import {accessHeader} from "@/net";
 import {ElMessage} from "element-plus";
-import {accessHeader, post} from "@/net/index.js";
-import {get} from "@/net/index.js";
 import ColorDot from "@/components/ColorDot.vue";
 import {userStore} from "@/store/index.js";
-
+import {post} from "@/net/index.js";
 
 const store = userStore()
-defineProps({
-  show: Boolean
+
+const props = defineProps({
+  show: Boolean,
+  defaultTitle: {
+    default: '',
+    type: String
+  },
+  defaultText: {
+    default: '',
+    type: String
+  },
+  defaultType: {
+    default: null,
+    type: Number
+  },
+  submitButton: {
+    default: '立即发表主题',
+    type: String
+  },
+  submit: {
+    default: (editor, success) => {
+      post('/api/forum/create-topic',{
+        type: editor.type.id,
+        title: editor.title,
+        content: editor.text
+      }, () => {
+        ElMessage.success("帖子发表成功！")
+        success()
+      })
+    },
+    type: Function
+  }
 })
 
 Quill.register('modules/imageResize',ImageResize)
@@ -25,13 +55,11 @@ const editor = reactive({
   type: null,
   title: '',
   text: '',
-  loading: ''
+  loading: false
 })
 const emit = defineEmits(['close','success'])
 
 const refEditor = ref()
-
-
 const editorOption = {
   modules: {
     toolbar: {
@@ -97,14 +125,7 @@ function submitTopic() {
     ElMessage.warning('请选择一个合适的帖子类型！')
     return
   }
-  post('api/forum/create-topic',{
-    type: editor.type.id,
-    title: editor.title,
-    content: editor.text
-  },()=>{
-    ElMessage.success('帖子发表成功')
-    emit('success')
-  })
+  props.submit(editor,() => emit('success'))
 }
 const contentLength = computed(() => deltaToText(editor.text).length)
 
@@ -115,20 +136,33 @@ function deltaToText(delta){
     str += op.insert
   return str.replace(/\s/g,"")
 }
-
-function initEditor(){
-  refEditor.value.setContents('', 'user')
-  editor.title = ''
-  editor.type = null
+function findTypeById(id){
+  for (let type of store.forum.types){
+    if (type.id === id)
+      return type
+  }
 }
+
+
+function initEditor() {
+  if(props.defaultText)
+    editor.text = new Delta(JSON.parse(props.defaultText))
+  else
+    refEditor.value.setContents('', 'user')
+  editor.title = props.defaultTitle
+  editor.type = findTypeById(props.defaultType)
+}
+
 </script>
 
 <template>
   <div>
     <el-drawer :model-value="show"
-               :direction="'btt'" :size="600"
-               :on-open="initEditor"
-               :close-on-click-modal="false" @close="emit('close')">
+               direction="btt"
+               @open="initEditor"
+               :close-on-click-modal="false"
+               :size="650"
+               @close="emit('close')">
       <template #header>
         <div>
           <div style="font-weight: bold">发表新的帖子</div>
@@ -167,7 +201,7 @@ function initEditor(){
           当前字数{{ contentLength }}(最高支持20000字)
         </div>
         <div>
-          <el-button @click="submitTopic" type="success" plain>立即发布</el-button>
+          <el-button @click="submitTopic" type="success" plain>{{ submitButton }}</el-button>
         </div>
       </div>
     </el-drawer>

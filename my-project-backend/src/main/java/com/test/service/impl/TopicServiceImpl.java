@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.test.entity.dto.*;
 import com.test.entity.vo.request.TopicCreateVo;
+import com.test.entity.vo.request.TopicUpdateVo;
 import com.test.entity.vo.response.TopicDetailVo;
 import com.test.entity.vo.response.TopicPreviewVo;
 import com.test.entity.vo.response.TopicTopVo;
@@ -106,6 +107,25 @@ public class TopicServiceImpl extends ServiceImpl<TopicMapper, Topic> implements
         }
     }
 
+    @Override
+    public String updateTopic(int uid, TopicUpdateVo vo) {
+        // 1. 内容长度检查：验证文章内容是否超过字数限制
+        if (!textLimitCheck(vo.getContent()))
+            return "文章内容超过字数限制！";
+
+        // 2. 文章类型验证：检查前端传递的文章类型是否在允许的范围内
+        if (!types.contains(vo.getType()))
+            return "文章类型非法!!!";
+        baseMapper.update(null,Wrappers.<Topic>update()
+                .eq("uid",uid)
+                .eq("id",vo.getId())
+                .set("title",vo.getTitle())
+                .set("content",vo.getContent().toString())
+                .set("type",vo.getType())
+        );
+        return null;
+    }
+
     /**
      * 分页获取主题列表预览信息
      * 根据类型筛选主题，并转换为前端所需的预览格式
@@ -157,10 +177,15 @@ public class TopicServiceImpl extends ServiceImpl<TopicMapper, Topic> implements
     }
 //获取帖子详情
     @Override
-    public TopicDetailVo getTopic(int tid) {
+    public TopicDetailVo getTopic(int tid,int uid) {
         TopicDetailVo vo = new TopicDetailVo();
         Topic topic = baseMapper.selectById(tid);
         BeanUtils.copyProperties(topic,vo);
+        TopicDetailVo.Interact interact = new TopicDetailVo.Interact(
+                hasInteract(tid,uid, "like"),
+                hasInteract(tid,uid, "collect")
+        );
+        vo.setInteract(interact);
         TopicDetailVo.User user = new TopicDetailVo.User();
         vo.setUser(this.fillUserDetailsByPrivacy(user,topic.getUid()));
         return vo;
@@ -181,6 +206,28 @@ public class TopicServiceImpl extends ServiceImpl<TopicMapper, Topic> implements
             // 触发定时保存任务
             this.saveInteractSchedule(type);
         }
+    }
+//展示用户收藏列表
+
+    @Override
+    public List<TopicPreviewVo> listTopicCollects(int uid) {
+        return baseMapper.collectTopics(uid)
+                .stream()
+                .map(topic -> {
+                    TopicPreviewVo vo =new TopicPreviewVo();
+                    BeanUtils.copyProperties(topic,vo);
+                    return vo;
+                })
+                .toList();
+    }
+
+
+    private boolean hasInteract(int tid,int uid, String type){
+        String key = tid + ":" + uid;
+        if (stringRedisTemplate.opsForHash().hasKey(type,key)){
+            return Boolean.parseBoolean(stringRedisTemplate.opsForHash().entries(type).get(key).toString());
+        }
+        return baseMapper.userInteractCount(tid,uid,type) > 0;
     }
 
     // 用于跟踪各类型互动是否已经安排了保存任务的状态映射
@@ -271,7 +318,8 @@ public class TopicServiceImpl extends ServiceImpl<TopicMapper, Topic> implements
 
         //帖子的信息在帖子表里查
         BeanUtils.copyProperties(topic, vo);
-
+        vo.setLike(baseMapper.interactCount(topic.getId(),"like"));
+        vo.setLike(baseMapper.interactCount(topic.getId(),"collect"));
 
         // 用于存储主题中的图片URL列表
         List<String> images = new ArrayList<>();

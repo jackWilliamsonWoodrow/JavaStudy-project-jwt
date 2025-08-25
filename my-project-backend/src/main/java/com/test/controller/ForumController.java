@@ -3,6 +3,7 @@ package com.test.controller;
 import com.test.entity.RestBean;
 import com.test.entity.dto.Interact;
 import com.test.entity.vo.request.TopicCreateVo;
+import com.test.entity.vo.request.TopicUpdateVo;
 import com.test.entity.vo.response.*;
 import com.test.service.TopicService;
 import com.test.service.WeatherService;
@@ -61,8 +62,9 @@ public class ForumController {
     }
 
     @GetMapping("/topic")
-    public RestBean<TopicDetailVo> topic(@RequestParam @Min(0) int tid){
-        return RestBean.success(topicService.getTopic(tid));
+    public RestBean<TopicDetailVo> topic(@RequestParam @Min(0) int tid,
+                                         @RequestAttribute("id") int id ){
+        return RestBean.success(topicService.getTopic(tid,id));
     }
     @GetMapping("/interact")
     public RestBean<Void> interact(@RequestParam @Min(0) int tid,
@@ -71,9 +73,16 @@ public class ForumController {
                                    @RequestAttribute("id") int id){
         topicService.interact(new Interact(tid,id,new Date(),type),state);
         return RestBean.success();
-
-
     }
 
+    @GetMapping("/collects")
+    public RestBean<List<TopicPreviewVo>> collects(@RequestAttribute("id") int id){
+        return RestBean.success(topicService.listTopicCollects(id));
+    }
 
+    @PostMapping("/update-topic")
+    public RestBean<Void> updateTopic(@Valid @RequestBody TopicUpdateVo vo,
+                                      @RequestAttribute("id") int id){
+        return utils.messageHandle(() -> topicService.updateTopic(id,vo));
+    }
 }

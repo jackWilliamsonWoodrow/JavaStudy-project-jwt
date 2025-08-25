@@ -1,14 +1,16 @@
 <script setup>
-import {get} from "@/net/index.js";
+import {get, post} from "@/net/index.js";
 import {useRoute} from "vue-router";
 import axios from "axios";
-import {ArrowLeft, CircleCheck, Female, Male, Star} from "@element-plus/icons-vue";
+import {ArrowLeft, CircleCheck, EditPen, Female, Male, Star} from "@element-plus/icons-vue";
 import { QuillDeltaToHtmlConverter } from 'quill-delta-to-html';
 import Card from "@/components/Card.vue";
 import router from "@/router/index.js";
 import TopicTag from "@/components/TopicTag.vue";
 import InteractButton from "@/components/InteractButton.vue";
 import {ElMessage} from "element-plus";
+import {userStore} from "@/store/index.js";
+import TopicEditor from "@/components/TopicEditor.vue";
 
 const route = useRoute()
 
@@ -19,16 +21,21 @@ const topic = reactive({
   collect: false,
   comments: []
 })
+const edit = ref(false)
+
+const store = userStore()
 function convertToHtml(content) {
   const ops = JSON.parse(content).ops
   const converter = new QuillDeltaToHtmlConverter(ops, { inlineStyles: true });
   return converter.convert();
 }
 
-get(`api/forum/topic?tid=${tid}`,data =>{
+const init = () => get(`api/forum/topic?tid=${tid}`,data =>{
   topic.data = data
+  topic.like = data.interact.like
+  topic.collect= data.interact.collect
 })
-
+init()
 function interact(type,message){
   get(`/api/forum/interact?tid=${tid}&type=${type}&state=${!topic[type]}`,() =>{
     topic[type] = !topic[type]
@@ -36,6 +43,19 @@ function interact(type,message){
       ElMessage.success(`${message}成功`)
     else
       ElMessage.success(`已取消${message}!`)
+  })
+}
+
+function updateTopic(editor){
+  post('/api/forum/update-topic',{
+    id: tid,
+    type: editor.type.id,
+    title: editor.title,
+    content: editor.text
+  },() =>{
+    ElMessage.success('帖子内容更新成功')
+    edit.value = false
+    init()
   })
 }
 </script>
@@ -78,8 +98,17 @@ function interact(type,message){
       </div>
       <div class="topic-main-right">
         <div class="topic-content" v-html="convertToHtml(topic.data.content)"></div>
-        <div style="text-align: right;margin-top: 150px">
-          <interact-button name="点赞" color="pink" :check="topic.like" check-name="已点赞"
+        <el-divider/>
+        <div style="font-size: 13px;color: grey;text-align: center;margin-top: 5px">
+          <div>发帖时间:{{new Date(topic.data.time).toLocaleString()}}</div>
+        </div>
+        <div style="text-align: right;margin-top: 10px">
+          <interact-button name="编辑帖子" color="dodgerblue" :check="false"
+                           @check="edit = true" style="margin-right: 20px"
+                           v-if="store.user.id === topic.data.user.id">
+            <el-icon><EditPen/></el-icon>
+          </interact-button>
+          <interact-button style="margin-left: 20px" name="点赞" color="pink" :check="topic.like" check-name="已点赞"
           @check="interact('like','点赞')">
             <el-icon><CircleCheck/></el-icon>
           </interact-button>
@@ -90,9 +119,9 @@ function interact(type,message){
         </div>
       </div>
     </div>
-    <div>
-
-    </div>
+    <topic-editor :show="edit" @close="edit = false" v-if="topic.data && store.forum.types"
+                  :default-type="topic.data.type" :default-text="topic.data.content"
+                  :default-title="topic.data.title" submit-button="更新帖子内容" :submit="updateTopic"/>
   </div>
 </template>
 
@@ -123,13 +152,16 @@ function interact(type,message){
   }
   .topic-main-right{
     width: 600px;
-
     padding: 10px 20px;
+    display: flex;
+    flex-direction: column;
   }
 
   .topic-content{
     font-size: 14px;
+    line-height: 22px;
     opacity: 0.8;
+    flex: 1;
   }
 }
 </style>
